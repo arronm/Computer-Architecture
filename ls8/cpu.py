@@ -54,7 +54,10 @@ class CPU:
             raise Exception("Unsupported ALU operation")
     
     def ldi(self, mar, mdr):
-        self.reg[mar] = mdr
+        if mar <= 4:
+            self.reg[mar] = mdr
+        else:
+            raise OverflowError('Cannot overwrite reserved registers.')
     
     def prn(self, mar):
         print(self.reg[mar])
