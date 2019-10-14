@@ -15,7 +15,7 @@ class CPU:
         self.instructions = {}
         self.instructions[HLT] = self.halt
         self.instructions[LDI] = self.ldi
-        # self.instructions[PRN] = self.print
+        self.instructions[PRN] = self.prn
 
 
     def load(self):
@@ -51,6 +51,9 @@ class CPU:
     
     def ldi(self, mar, mdr):
         self.reg[mar] = mdr
+    
+    def prn(self, mar):
+        print(self.reg[mar])
 
     def trace(self):
         """
