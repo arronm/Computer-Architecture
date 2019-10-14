@@ -3,12 +3,19 @@
 """Main."""
 
 import sys
+import os
 from cpu import *
 
 cpu = CPU()
 
-print(sys.argv[1])
+# Make sure second argument is passed
+if len(sys.argv) <= 1:
+  raise ValueError('Program is expected as a second argument, None provided.')
+else:
+  # Validate that the argument given is a file that exists
+  file = sys.argv[1]
 
-# Load filename into CPU
-cpu.load()
-cpu.run()
+  if os.path.isfile(file):
+    # Load filename into CPU
+    cpu.load(file)
+    cpu.run()

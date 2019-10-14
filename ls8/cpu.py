@@ -18,10 +18,13 @@ class CPU:
         self.instructions[PRN] = self.prn
 
 
-    def load(self):
+    def load(self, file):
         """Load a program into memory."""
 
         address = 0
+
+        # load program by reading the file
+        # NOTE: we expect the file to be valid and exist, thanks to ls8
 
         # For now, we've just hardcoded a program:
 
