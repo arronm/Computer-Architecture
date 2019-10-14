@@ -17,6 +17,10 @@ class CPU:
         self.instructions[LDI] = self.ldi
         self.instructions[PRN] = self.prn
 
+        self.alu_ops = {}
+        self.alu_ops[MUL] = "MUL"
+
+
     def parse(self, instruction):
         return instruction.split('#')[0]
 
@@ -27,6 +31,8 @@ class CPU:
 
         # load program by reading the file
         # NOTE: we expect the file to be valid and exist, thanks to ls8
+        # TODO: This parser can be cleaned up with more consistent return
+        #   handling blank lines inside of the parsed method
         with open(file) as program:
             instruction = program.readline()
             while instruction:
@@ -36,29 +42,14 @@ class CPU:
                     address += 1
                 instruction = program.readline()
 
-        # For now, we've just hardcoded a program:
-
-        # program = [
-        #     # From print8.ls8
-        #     0b10000010, # LDI R0,8
-        #     0b00000000,
-        #     0b00001000,
-        #     0b01000111, # PRN R0
-        #     0b00000000,
-        #     0b00000001, # HLT
-        # ]
-
-        # for instruction in program:
-        #     self.ram[address] = instruction
-        #     address += 1
-
-
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         #elif op == "SUB": etc
+        elif op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
     
@@ -120,6 +111,8 @@ class CPU:
 
             if ir in self.instructions:
                 self.execute(ir, operand_a, operand_b)
+            elif (ir >> 5 & 1) == 1 and ir in self.alu_ops:
+                self.alu(self.alu_ops[ir], operand_a, operand_b)
             else:
                 print('unknown command provided')
                 # raise NotImplementedError("Unknown command provided.")
