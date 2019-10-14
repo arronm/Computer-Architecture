@@ -3,6 +3,7 @@
 import sys
 from instructions import *
 
+
 class CPU:
     """Main CPU class."""
 
@@ -12,11 +13,20 @@ class CPU:
         self.reg = [0] * 8
         self.pc = 0
         self.running = True
+
+        # Reserved Registers
+        self.reg[7] = 0xF4 if 0xF3 == 0 else 0xF3 # Stack Pointer
+
+        # PC Instructions
         self.instructions = {}
         self.instructions[HLT] = self.halt
         self.instructions[LDI] = self.ldi
         self.instructions[PRN] = self.prn
+        # TODO: look into creating separate stack class
+        self.instructions[POP] = self.pop
+        self.instructions[PUSH] = self.push
 
+        # ALU OPERATIONS
         self.alu_ops = {}
         self.alu_ops[MUL] = "MUL"
 
@@ -50,6 +60,7 @@ class CPU:
         #elif op == "SUB": etc
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+            # self.reg[reg_a] = self.reg[reg_a] & 0xFF  # out of range error?
         else:
             raise Exception("Unsupported ALU operation")
     
@@ -58,6 +69,15 @@ class CPU:
             self.reg[mar] = mdr
         else:
             raise OverflowError('Cannot overwrite reserved registers.')
+    
+    def pop(self, mar):
+        self.ldi(mar, self.ram[self.reg[7]])
+        self.reg[7] += 1
+
+    def push(self, mar):
+        self.reg[7] -= 1
+        self.ram[self.reg[7]] = self.reg[mar]
+        pass
     
     def prn(self, mar):
         print(self.reg[mar])
