@@ -10,7 +10,7 @@ cpu = CPU()
 
 # Make sure second argument is passed
 if len(sys.argv) <= 1:
-  raise ValueError('Program is expected as a second argument, None provided.')
+  raise Exception('Program is expected as a second argument, None provided.')
 else:
   # Validate that the argument given is a file that exists
   file = sys.argv[1]

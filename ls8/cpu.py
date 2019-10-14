@@ -30,6 +30,11 @@ class CPU:
         self.alu_ops = {}
         self.alu_ops[MUL] = "MUL"
 
+    def get_sp(self):
+        return self.reg[7]
+    
+    def set_sp(self, mdr):
+        self.reg[7] = mdr
 
     def parse(self, instruction):
         return instruction.split('#')[0]
@@ -71,14 +76,15 @@ class CPU:
             raise OverflowError('Cannot overwrite reserved registers.')
     
     def pop(self, mar):
-        self.ldi(mar, self.ram[self.reg[7]])
-        self.reg[7] += 1
+        sp = self.get_sp()
+        self.ldi(mar, self.ram[sp])
+        self.set_sp(sp + 1)
 
     def push(self, mar):
-        self.reg[7] -= 1
-        self.ram[self.reg[7]] = self.reg[mar]
-        pass
-    
+        sp = self.get_sp()
+        self.set_sp(sp - 1)
+        self.ram[sp - 1] = self.reg[mar]
+
     def prn(self, mar):
         print(self.reg[mar])
 
@@ -121,7 +127,7 @@ class CPU:
         elif operands == 2:
             self.instructions[ir](op_a, op_b)
         else:
-            raise EnvironmentError('Too many operands provided, please use one or two.')
+            raise Exception('Too many operands provided, please use one or two.')
 
     def run(self):
         """Run the CPU."""
