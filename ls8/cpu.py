@@ -1,6 +1,7 @@
 """CPU functionality."""
 
 import sys
+from instructions import *
 
 class CPU:
     """Main CPU class."""
@@ -11,11 +12,11 @@ class CPU:
         self.reg = [0] * 8
         self.pc = 0
         self.running = True
-        self.instructions = {
-            'HLT': 0b00000001,
-            'PRN': 2,
-            'LDI': 3,
-        }
+        self.instructions = {}
+        self.instructions[HLT] = self.halt
+        self.instructions[LDI] = self.ldi
+        # self.instructions[PRN] = self.print
+
 
     def load(self):
         """Load a program into memory."""
@@ -47,6 +48,9 @@ class CPU:
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
+    
+    def ldi(self, mar, mdr):
+        self.reg[mar] = mdr
 
     def trace(self):
         """
@@ -75,17 +79,35 @@ class CPU:
     def ram_write(self, mdr, mar):
         self.ram[mar] = mdr
 
+    def halt(self):
+        self.running = False
+
+    def execute(self, ir, op_a, op_b):
+        operands = ir >> 6
+        if operands == 0:
+            self.instructions[ir]()
+        elif operands == 1:
+            self.instructions[ir](op_a)
+        elif operands == 2:
+            self.instructions[ir](op_a, op_b)
+        else:
+            raise EnvironmentError('Too many operands provided, please use one or two.')
+
     def run(self):
         """Run the CPU."""
         while self.running:
             ir = self.ram_read(self.pc)
-            print(bin(ir), ir >> 6)
+            self.trace()
+
             # TODO: Handle overflow here ?
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
-            if ir == self.instructions['HLT']:
-                self.running = False
+            if ir in self.instructions:
+                self.execute(ir, operand_a, operand_b)
+            else:
+                print('unknown command provided')
+                # raise NotImplementedError("Unknown command provided.")
             
             self.pc += (ir >> 6) + 1
 
