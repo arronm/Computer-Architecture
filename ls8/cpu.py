@@ -17,6 +17,8 @@ class CPU:
         self.instructions[LDI] = self.ldi
         self.instructions[PRN] = self.prn
 
+    def parse(self, instruction):
+        return instruction.split('#')[0]
 
     def load(self, file):
         """Load a program into memory."""
@@ -25,22 +27,30 @@ class CPU:
 
         # load program by reading the file
         # NOTE: we expect the file to be valid and exist, thanks to ls8
+        with open(file) as program:
+            instruction = program.readline()
+            while instruction:
+                parsed = self.parse(instruction.strip())
+                if parsed:
+                    self.ram[address] = int(parsed, 2)
+                    address += 1
+                instruction = program.readline()
 
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
 
 
     def alu(self, op, reg_a, reg_b):
