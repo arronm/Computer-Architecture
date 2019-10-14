@@ -100,7 +100,6 @@ class CPU:
         """Run the CPU."""
         while self.running:
             ir = self.ram_read(self.pc)
-            self.trace()
 
             # TODO: Handle overflow here ?
             operand_a = self.ram_read(self.pc + 1)
