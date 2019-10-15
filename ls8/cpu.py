@@ -146,8 +146,11 @@ class CPU:
     def halt(self):
         self.running = False
     
-    def st(self):
-        pass
+    def st(self, reg_a, reg_b):
+        # Take value (MDR) in reg_b and store it in address (MAR) in reg_a
+        mdr = self.reg[reg_b]
+        mar = self.reg[reg_a]
+        self.ram[mar] = mdr
 
     def execute(self, ir, op_a, op_b):
         operands = ir >> 6
@@ -164,7 +167,7 @@ class CPU:
         """Run the CPU."""
         while self.running:
             ir = self.ram_read(self.pc)
-            # self.trace()
+            self.trace()
 
             # TODO: Handle overflow here ?
             operand_a = self.ram_read(self.pc + 1)
