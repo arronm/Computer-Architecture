@@ -19,3 +19,5 @@ else:
     # Load filename into CPU
     cpu.load(file)
     cpu.run()
+  else:
+    raise FileNotFoundError('Could not find the specified file.')

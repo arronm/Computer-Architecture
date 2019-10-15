@@ -15,20 +15,25 @@ class CPU:
         self.running = True
 
         # Reserved Registers
-        self.reg[7] = 0xF4 if 0xF3 == 0 else 0xF3 # Stack Pointer
+        self.reg[7] = 0xF4  # if 0xF3 == 0 else 0xF3 # Stack Pointer
 
         # PC Instructions
         self.instructions = {}
         self.instructions[HLT] = self.halt
         self.instructions[LDI] = self.ldi
         self.instructions[PRN] = self.prn
-        # TODO: look into creating separate stack class
         self.instructions[POP] = self.pop
         self.instructions[PUSH] = self.push
+        self.instructions[CALL] = self.call
+        self.instructions[RET] = self.ret
 
         # ALU OPERATIONS
         self.alu_ops = {}
         self.alu_ops[MUL] = "MUL"
+        self.alu_ops[ADD] = "ADD"
+
+        # Possibly Temp
+        self.cont = False
 
     def get_sp(self):
         return self.reg[7]
@@ -69,15 +74,17 @@ class CPU:
         else:
             raise Exception("Unsupported ALU operation")
     
-    def ldi(self, mar, mdr):
+    def ldi(self, mar, mdr, internal=False):
         if mar <= 4:
+            self.reg[mar] = mdr
+        elif internal == True and mar <= 7:
             self.reg[mar] = mdr
         else:
             raise OverflowError('Cannot overwrite reserved registers.')
     
-    def pop(self, mar):
+    def pop(self, mar, internal=False):
         sp = self.get_sp()
-        self.ldi(mar, self.ram[sp])
+        self.ldi(mar, self.ram[sp], internal)
         self.set_sp(sp + 1)
 
     def push(self, mar):
@@ -108,6 +115,25 @@ class CPU:
 
         print()
     
+    def call(self, mar):
+        # push address after call to stack
+        # TODO: Updat this so it's not a manual push
+        sp = self.get_sp()
+        self.set_sp(sp - 1)
+        self.ram[sp - 1] = self.pc + 2
+        # set the PC to the correct address
+        self.pc = self.reg[mar]
+        self.cont = True
+
+    def ret(self):
+        # Pop the value from the top of the stack and store it in the PC
+        # Manual pop for now, TODO: Update this so it is not a manual pop
+        sp = self.get_sp()
+        self.pc = self.ram_read(sp)
+        self.set_sp(sp + 1)
+        
+        self.cont = True
+    
     def ram_read(self, mar):
         # access self.RAM[MAR]
         return self.ram[mar]
@@ -133,6 +159,7 @@ class CPU:
         """Run the CPU."""
         while self.running:
             ir = self.ram_read(self.pc)
+            # self.trace()
 
             # TODO: Handle overflow here ?
             operand_a = self.ram_read(self.pc + 1)
@@ -143,8 +170,12 @@ class CPU:
             elif (ir >> 5 & 1) == 1 and ir in self.alu_ops:
                 self.alu(self.alu_ops[ir], operand_a, operand_b)
             else:
-                print('unknown command provided')
-                # raise NotImplementedError("Unknown command provided.")
+                # print('unknown command provided', bin(ir))
+                raise NotImplementedError(f'Unknown command {bin(ir)} provided.')
+            
+            if self.cont:
+                self.cont = False
+                continue
             
             self.pc += (ir >> 6) + 1
 
