@@ -26,6 +26,7 @@ class CPU:
         self.instructions[PUSH] = self.push
         self.instructions[CALL] = self.call
         self.instructions[RET] = self.ret
+        self.instructions[ST] = self.st
 
         # ALU OPERATIONS
         self.alu_ops = {}
@@ -75,12 +76,13 @@ class CPU:
             raise Exception("Unsupported ALU operation")
     
     def ldi(self, mar, mdr, internal=False):
-        if mar <= 4:
-            self.reg[mar] = mdr
-        elif internal == True and mar <= 7:
-            self.reg[mar] = mdr
-        else:
-            raise OverflowError('Cannot overwrite reserved registers.')
+        # if mar <= 4:
+        #     self.reg[mar] = mdr
+        # elif internal == True and mar <= 7:
+        #     self.reg[mar] = mdr
+        # else:
+        #     raise OverflowError('Cannot overwrite reserved registers.')
+        self.reg[mar] = mdr
     
     def pop(self, mar, internal=False):
         sp = self.get_sp()
@@ -117,7 +119,7 @@ class CPU:
     
     def call(self, mar):
         # push address after call to stack
-        # TODO: Updat this so it's not a manual push
+        # TODO: Update this so it's not a manual push
         sp = self.get_sp()
         self.set_sp(sp - 1)
         self.ram[sp - 1] = self.pc + 2
@@ -143,6 +145,9 @@ class CPU:
 
     def halt(self):
         self.running = False
+    
+    def st(self):
+        pass
 
     def execute(self, ir, op_a, op_b):
         operands = ir >> 6
