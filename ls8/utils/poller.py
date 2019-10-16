@@ -7,20 +7,18 @@ keyQueue = queue.SimpleQueue()
 
 class KeyboardPoller(threading.Thread):
   def run(self):
+    global stop_polling
     while True:
       x = msvcrt.kbhit()
       if x:
-        key_pressed = 1
         key = ord(msvcrt.getch())
         keyQueue.put(key)
 
-        if key == ord('q'):
-          exit()
-      else:
-        key_pressed = 0
-        key = None
+      if stop_polling:
+        exit()
 
 if __name__ == "__main__":
+  stop_polling = False
   poller = KeyboardPoller()
   poller.start()
 
@@ -31,4 +29,5 @@ if __name__ == "__main__":
         break
       print(chr(char))
   print('quit')
+  stop_polling = True
   
