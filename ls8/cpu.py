@@ -53,6 +53,7 @@ class CPU:
         self.instructions[JMP] = self.jmp
         self.instructions[PRA] = self.pra
         self.instructions[IRET] = self.iret
+        self.instructions[LD] = self.ld
 
         # ALU OPERATIONS
         self.alu_ops = {}
@@ -194,6 +195,11 @@ class CPU:
         mar = self.reg[reg_a]
         self.ram[mar] = mdr
     
+    def ld(self, reg_a, reg_b):
+        # Loads registerA with the value at the memory address stored in registerB.
+        mdr = self.reg[reg_b]
+        self.reg[reg_a] = self.ram[mdr]
+    
     def jmp(self, reg_a):
         # Jump to the address in reg_a
         self.pc = self.reg[reg_a]
@@ -274,40 +280,40 @@ class CPU:
         poller = KeyboardPoller()
         poller.start()
 
-        # try:
-        while self.running:
-            if not keyQueue.empty():
-                # characters in key queue, set interrupt
-                self.set_is_or(0b00000010) # sets the second bit
-                char = keyQueue.get()
-                print(chr(char))
+        try:
+            while self.running:
+                if not keyQueue.empty():
+                    # characters in key queue, set interrupt
+                    self.set_is_or(0b00000010) # sets the second bit
+                    char = keyQueue.get()
+                    self.ram[0xF4] = char
 
-            if datetime.now() - self.interrupted >= timedelta(seconds=self.interrupt_timer):
-                self.set_is_or(0b000000001)  # sets the first bit
-                self.interrupted = datetime.now()
+                if datetime.now() - self.interrupted >= timedelta(seconds=self.interrupt_timer):
+                    self.set_is_or(0b000000001)  # sets the first bit
+                    self.interrupted = datetime.now()
 
-            self.interrupt()
+                self.interrupt()
 
-            ir = self.ram_read(self.pc)
-            # self.trace()
+                ir = self.ram_read(self.pc)
+                # self.trace()
 
 
-            # TODO: Handle overflow here ?
-            operand_a = self.ram_read(self.pc + 1)
-            operand_b = self.ram_read(self.pc + 2)
+                # TODO: Handle overflow here ?
+                operand_a = self.ram_read(self.pc + 1)
+                operand_b = self.ram_read(self.pc + 2)
 
-            if ir in self.instructions:
-                self.execute(ir, operand_a, operand_b)
-            elif (ir >> 5 & 1) == 1 and ir in self.alu_ops:
-                self.alu(self.alu_ops[ir], operand_a, operand_b)
-            else:
-                raise NotImplementedError(f'Unknown command {bin(ir)} provided.')
+                if ir in self.instructions:
+                    self.execute(ir, operand_a, operand_b)
+                elif (ir >> 5 & 1) == 1 and ir in self.alu_ops:
+                    self.alu(self.alu_ops[ir], operand_a, operand_b)
+                else:
+                    raise NotImplementedError(f'Unknown command {bin(ir)} provided.')
 
-            if self.cont:
-                self.cont = False
-                continue
-            else:
-                self.pc += (ir >> 6) + 1
-        # except:
-        #     stop_polling = True
-        #     print('quitting')
+                if self.cont:
+                    self.cont = False
+                    continue
+                else:
+                    self.pc += (ir >> 6) + 1
+        except:
+            stop_polling = True
+            print('quitting')
