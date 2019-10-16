@@ -1,8 +1,26 @@
 """CPU functionality."""
 
 import sys
+import queue
+import threading
+import msvcrt
 from datetime import datetime, timedelta
 from instructions import *
+
+keyQueue = queue.SimpleQueue()
+stop_polling = False
+
+class KeyboardPoller(threading.Thread):
+  def run(self):
+    global stop_polling
+    while True:
+      keypress = msvcrt.kbhit()
+      if keypress:
+        key = ord(msvcrt.getch())
+        keyQueue.put(key)
+
+      if stop_polling:
+        exit()
 
 
 class CPU:
@@ -64,7 +82,7 @@ class CPU:
         self.reg[6] = self.reg[6] | mdr
     
     def set_is(self, mdr):
-        self.reg[6] = self.reg[6]
+        self.reg[6] = mdr
 
     def parse(self, instruction):
         return instruction.split('#')[0]
@@ -205,6 +223,7 @@ class CPU:
 
         if masked_interrupts == 0:
             return
+        
 
         for i in range(8):
             # Right shift interrupts down by i, then mask with 1 to see if that bit was set
@@ -246,15 +265,32 @@ class CPU:
         self.pc = self.ram[self.get_sp()]
         self.set_sp(self.get_sp() + 1)
         self.interrupting = False
+        self.cont = True
 
     def run(self):
         """Run the CPU."""
+        global stop_polling
+        global keyQueue
+        poller = KeyboardPoller()
+        # poller.start()
+
+        # try:
         while self.running:
+            if not keyQueue.empty():
+                # characters in key queue, set interrupt
+                self.set_is_or(0b00000010) # sets the second bit
+                char = keyQueue.get()
+                print(chr(char))
+
             if datetime.now() - self.interrupted >= timedelta(seconds=self.interrupt_timer):
                 self.set_is_or(0b000000001)  # sets the first bit
-                self.interrupt()
+                self.interrupted = datetime.now()
+
+            self.interrupt()
+
             ir = self.ram_read(self.pc)
             # self.trace()
+
 
             # TODO: Handle overflow here ?
             operand_a = self.ram_read(self.pc + 1)
@@ -270,5 +306,8 @@ class CPU:
             if self.cont:
                 self.cont = False
                 continue
-
-            self.pc += (ir >> 6) + 1
+            else:
+                self.pc += (ir >> 6) + 1
+        # except:
+        #     stop_polling = True
+        #     print('quitting')

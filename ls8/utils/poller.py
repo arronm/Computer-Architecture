@@ -2,15 +2,14 @@ import sys
 import msvcrt
 import queue
 import threading
-
-keyQueue = queue.SimpleQueue()
+stop_polling = False
 
 class KeyboardPoller(threading.Thread):
   def run(self):
     global stop_polling
     while True:
-      x = msvcrt.kbhit()
-      if x:
+      keypress = msvcrt.kbhit()
+      if keypress:
         key = ord(msvcrt.getch())
         keyQueue.put(key)
 
@@ -18,6 +17,7 @@ class KeyboardPoller(threading.Thread):
         exit()
 
 if __name__ == "__main__":
+  keyQueue = queue.SimpleQueue()
   stop_polling = False
   poller = KeyboardPoller()
   poller.start()
