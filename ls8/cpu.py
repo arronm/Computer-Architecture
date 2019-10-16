@@ -272,7 +272,7 @@ class CPU:
         global stop_polling
         global keyQueue
         poller = KeyboardPoller()
-        # poller.start()
+        poller.start()
 
         # try:
         while self.running:
