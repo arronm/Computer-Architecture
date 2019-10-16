@@ -1,6 +1,7 @@
 """CPU functionality."""
 
 import sys
+from datetime import datetime, timedelta
 from instructions import *
 
 
@@ -12,10 +13,14 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = 0
+        self.fl = 0
         self.running = True
+        self.interrupt_timer = 1
+        self.interrupted = datetime.now()
+        self.interrupting = False
 
         # Reserved Registers
-        self.reg[7] = 0xF4  # if 0xF3 == 0 else 0xF3 # Stack Pointer
+        self.reg[7] = 0xF4 # Stack Pointer
 
         # PC Instructions
         self.instructions = {}
@@ -27,6 +32,9 @@ class CPU:
         self.instructions[CALL] = self.call
         self.instructions[RET] = self.ret
         self.instructions[ST] = self.st
+        self.instructions[JMP] = self.jmp
+        self.instructions[PRA] = self.pra
+        self.instructions[IRET] = self.iret
 
         # ALU OPERATIONS
         self.alu_ops = {}
@@ -36,11 +44,27 @@ class CPU:
         # Possibly Temp
         self.cont = False
 
+    # TODO: Abstract these out into a Register class
     def get_sp(self):
         return self.reg[7]
     
     def set_sp(self, mdr):
         self.reg[7] = mdr
+
+    def get_im(self):
+        return self.reg[5]
+    
+    def set_im(self, mdr):
+        self.reg[5] = mdr
+    
+    def get_is(self):
+        return self.reg[6]
+    
+    def set_is_or(self, mdr):
+        self.reg[6] = self.reg[6] | mdr
+    
+    def set_is(self, mdr):
+        self.reg[6] = self.reg[6]
 
     def parse(self, instruction):
         return instruction.split('#')[0]
@@ -151,6 +175,15 @@ class CPU:
         mdr = self.reg[reg_b]
         mar = self.reg[reg_a]
         self.ram[mar] = mdr
+    
+    def jmp(self, reg_a):
+        # Jump to the address in reg_a
+        self.pc = self.reg[reg_a]
+        self.cont = True
+    
+    def pra(self, reg_a):
+        # print alpha (ascii) character stored in reg_a
+        print(chr(self.reg[reg_a]))
 
     def execute(self, ir, op_a, op_b):
         operands = ir >> 6
@@ -162,12 +195,66 @@ class CPU:
             self.instructions[ir](op_a, op_b)
         else:
             raise Exception('Too many operands provided, please use one or two.')
+    
+    def interrupt(self):
+        # if currently processing an interrupt do nothing
+        if self.interrupting:
+            return
+
+        masked_interrupts = self.get_im() & self.get_is()
+
+        if masked_interrupts == 0:
+            return
+
+        for i in range(8):
+            # Right shift interrupts down by i, then mask with 1 to see if that bit was set
+            self.interrupting = ((masked_interrupts >> i) & 1) == 1
+
+            if self.interrupting:
+                break
+        # set up interrupt status mask
+        ism_mask = 1 << i
+
+        # reset the bit with the interrupt status mask
+        self.set_is(ism_mask ^ self.get_is())
+
+        # figure out the interrupt vector (address)
+        ia = 0xFF - (7 - (i))
+
+        # store current pc value (pc address)
+        sp = self.get_sp()
+        self.set_sp(sp - 1)
+        self.ram[sp - 1] = self.pc
+
+        # store fl value
+        sp = self.get_sp()
+        self.set_sp(sp - 1)
+        self.ram[sp - 1] = self.fl
+
+        # store registers on stack
+        for i in range(8):
+            self.push(i)
+        
+        self.pc = self.ram[ia]
+
+    def iret(self):
+        for i in range(8):
+            self.pop(7 - i)
+
+        self.fl = self.ram[self.get_sp()]
+        self.set_sp(self.get_sp() + 1)
+        self.pc = self.ram[self.get_sp()]
+        self.set_sp(self.get_sp() + 1)
+        self.interrupting = False
 
     def run(self):
         """Run the CPU."""
         while self.running:
+            if datetime.now() - self.interrupted >= timedelta(seconds=self.interrupt_timer):
+                self.set_is_or(0b000000001)  # sets the first bit
+                self.interrupt()
             ir = self.ram_read(self.pc)
-            self.trace()
+            # self.trace()
 
             # TODO: Handle overflow here ?
             operand_a = self.ram_read(self.pc + 1)
@@ -178,13 +265,10 @@ class CPU:
             elif (ir >> 5 & 1) == 1 and ir in self.alu_ops:
                 self.alu(self.alu_ops[ir], operand_a, operand_b)
             else:
-                # print('unknown command provided', bin(ir))
                 raise NotImplementedError(f'Unknown command {bin(ir)} provided.')
-            
+
             if self.cont:
                 self.cont = False
                 continue
-            
+
             self.pc += (ir >> 6) + 1
-
-
