@@ -54,11 +54,19 @@ class CPU:
         self.instructions[PRA] = self.pra
         self.instructions[IRET] = self.iret
         self.instructions[LD] = self.ld
+        self.instructions[JEQ] = self.jeq
+        self.instructions[JGT] = self.jgt
+        self.instructions[JLT] = self.jlt
 
         # ALU OPERATIONS
         self.alu_ops = {}
         self.alu_ops[MUL] = "MUL"
         self.alu_ops[ADD] = "ADD"
+        self.alu_ops[CMP] = "CMP"
+        self.alu_ops[DEC] = "DEC"
+        self.alu_ops[INC] = "INC"
+        self.alu_ops[SHL] = "SHL"
+        self.alu_ops[SHR] = "SHR"
 
         # Possibly Temp
         self.cont = False
@@ -115,6 +123,24 @@ class CPU:
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
             # self.reg[reg_a] = self.reg[reg_a] & 0xFF  # out of range error?
+        elif op == "SHL":
+            self.reg[reg_a] = self.reg[reg_a] << 1
+        elif op == "SHR":
+            self.reg[reg_a] = self.reg[reg_a] >> 1
+        elif op == "CMP":
+            # compare reg_a to reg_b ... i.e. a < b sets less-than bit in flag to 1
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.fl = 0b00000001
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.fl = 0b00000010
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                self.fl = 0b00000100
+        elif op == "INC":
+            # Increment value in reg_a
+            self.reg[reg_a] += 1
+        elif op == "DEC":
+            # Decrement value in reg_a
+            self.reg[reg_a] -= 1
         else:
             raise Exception("Unsupported ALU operation")
     
@@ -169,6 +195,8 @@ class CPU:
         # set the PC to the correct address
         self.pc = self.reg[mar]
         self.cont = True
+    
+    
 
     def ret(self):
         # Pop the value from the top of the stack and store it in the PC
@@ -204,6 +232,21 @@ class CPU:
         # Jump to the address in reg_a
         self.pc = self.reg[reg_a]
         self.cont = True
+    
+    def jeq(self, reg_a):
+        if self.fl & 0b00000001:
+            self.pc = self.reg[reg_a]
+            self.cont = True
+
+    def jgt(self, reg_a):
+        if self.fl & 0b00000010:
+            self.pc = self.reg[reg_a]
+            self.cont = True
+
+    def jlt(self, reg_a):
+        if self.fl & 0b00000100:
+            self.pc = self.reg[reg_a]
+            self.cont = True
     
     def pra(self, reg_a):
         # print alpha (ascii) character stored in reg_a
@@ -278,42 +321,39 @@ class CPU:
         global stop_polling
         global keyQueue
         poller = KeyboardPoller()
+        poller.daemon = True
         poller.start()
 
-        try:
-            while self.running:
-                if not keyQueue.empty():
-                    # characters in key queue, set interrupt
-                    self.set_is_or(0b00000010) # sets the second bit
-                    char = keyQueue.get()
-                    self.ram[0xF4] = char
+        while self.running:
+            # if not keyQueue.empty():
+            #     # characters in key queue, set interrupt
+            #     self.set_is_or(0b00000010) # sets the second bit
+            #     char = keyQueue.get()
+            #     self.ram[0xF4] = char
 
-                if datetime.now() - self.interrupted >= timedelta(seconds=self.interrupt_timer):
-                    self.set_is_or(0b000000001)  # sets the first bit
-                    self.interrupted = datetime.now()
+            # if datetime.now() - self.interrupted >= timedelta(seconds=self.interrupt_timer):
+            #     self.set_is_or(0b000000001)  # sets the first bit
+            #     self.interrupted = datetime.now()
 
-                self.interrupt()
+            self.interrupt()
 
-                ir = self.ram_read(self.pc)
-                # self.trace()
+            ir = self.ram_read(self.pc)
+            # self.trace()
 
 
-                # TODO: Handle overflow here ?
-                operand_a = self.ram_read(self.pc + 1)
-                operand_b = self.ram_read(self.pc + 2)
+            # TODO: Handle overflow here ?
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
 
-                if ir in self.instructions:
-                    self.execute(ir, operand_a, operand_b)
-                elif (ir >> 5 & 1) == 1 and ir in self.alu_ops:
-                    self.alu(self.alu_ops[ir], operand_a, operand_b)
-                else:
-                    raise NotImplementedError(f'Unknown command {bin(ir)} provided.')
+            if ir in self.instructions:
+                self.execute(ir, operand_a, operand_b)
+            elif (ir >> 5 & 1) == 1 and ir in self.alu_ops:
+                self.alu(self.alu_ops[ir], operand_a, operand_b)
+            else:
+                raise NotImplementedError(f'Unknown command {bin(ir)} provided.')
 
-                if self.cont:
-                    self.cont = False
-                    continue
-                else:
-                    self.pc += (ir >> 6) + 1
-        except:
-            stop_polling = True
-            print('quitting')
+            if self.cont:
+                self.cont = False
+                continue
+            else:
+                self.pc += (ir >> 6) + 1

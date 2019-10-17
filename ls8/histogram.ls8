@@ -1,0 +1,5 @@
+# Store initial loop value in R0
+# 
+
+# LDI R0, 1
+# LD
