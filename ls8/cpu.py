@@ -250,7 +250,9 @@ class CPU:
     
     def pra(self, reg_a):
         # print alpha (ascii) character stored in reg_a
-        print(chr(self.reg[reg_a]))
+        if self.reg[reg_a] == 13:
+            print()
+        print(chr(self.reg[reg_a]), end='')
 
     def execute(self, ir, op_a, op_b):
         operands = ir >> 6
@@ -325,15 +327,15 @@ class CPU:
         poller.start()
 
         while self.running:
-            # if not keyQueue.empty():
-            #     # characters in key queue, set interrupt
-            #     self.set_is_or(0b00000010) # sets the second bit
-            #     char = keyQueue.get()
-            #     self.ram[0xF4] = char
+            if not keyQueue.empty():
+                # characters in key queue, set interrupt
+                self.set_is_or(0b00000010) # sets the second bit
+                char = keyQueue.get()
+                self.ram[0xF4] = char
 
-            # if datetime.now() - self.interrupted >= timedelta(seconds=self.interrupt_timer):
-            #     self.set_is_or(0b000000001)  # sets the first bit
-            #     self.interrupted = datetime.now()
+            if datetime.now() - self.interrupted >= timedelta(seconds=self.interrupt_timer):
+                self.set_is_or(0b000000001)  # sets the first bit
+                self.interrupted = datetime.now()
 
             self.interrupt()
 
