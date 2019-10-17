@@ -57,6 +57,7 @@ class CPU:
         self.instructions[JEQ] = self.jeq
         self.instructions[JGT] = self.jgt
         self.instructions[JLT] = self.jlt
+        self.instructions[JNE] = self.jne
 
         # ALU OPERATIONS
         self.alu_ops = {}
@@ -248,6 +249,11 @@ class CPU:
             self.pc = self.reg[reg_a]
             self.cont = True
     
+    def jne(self, reg_a):
+        if not self.fl & 0b00000001:
+            self.pc = self.reg[reg_a]
+            self.cont = True
+    
     def pra(self, reg_a):
         # print alpha (ascii) character stored in reg_a
         if self.reg[reg_a] == 13:
@@ -340,7 +346,7 @@ class CPU:
             self.interrupt()
 
             ir = self.ram_read(self.pc)
-            # self.trace()
+            self.trace()
 
 
             # TODO: Handle overflow here ?
