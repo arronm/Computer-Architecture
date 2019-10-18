@@ -27,4 +27,4 @@ OR   = 0b10101010
 XOR  = 0b10101011
 NOT  = 0b01101001
 MOD  = 0b10100100
-IADD = 0b10010011  # Not sure what this opcode is
+IADD = 0b10110011
