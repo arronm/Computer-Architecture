@@ -59,6 +59,8 @@ class CPU:
         self.instructions[JLT] = self.jlt
         self.instructions[JNE] = self.jne
 
+        self.instructions[JLTI] = self.jlti
+
         # ALU OPERATIONS
         self.alu_ops = {}
         self.alu_ops[MUL] = "MUL"
@@ -223,6 +225,7 @@ class CPU:
         mdr = self.reg[reg_b]
         mar = self.reg[reg_a]
         self.ram[mar] = mdr
+        # print(f'setting {mar} to {mdr}')
     
     def ld(self, reg_a, reg_b):
         # Loads registerA with the value at the memory address stored in registerB.
@@ -247,6 +250,11 @@ class CPU:
     def jlt(self, reg_a):
         if self.fl & 0b00000100:
             self.pc = self.reg[reg_a]
+            self.cont = True
+    
+    def jlti(self, mar):
+        if self.fl & 0b00000100:
+            self.pc = mar
             self.cont = True
     
     def jne(self, reg_a):
@@ -346,7 +354,9 @@ class CPU:
             self.interrupt()
 
             ir = self.ram_read(self.pc)
-            self.trace()
+            # self.trace()
+            # print(self.ram[92])
+            # print(self.ram[93])
 
 
             # TODO: Handle overflow here ?
