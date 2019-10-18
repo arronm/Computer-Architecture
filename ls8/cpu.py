@@ -59,17 +59,21 @@ class CPU:
         self.instructions[JLT] = self.jlt
         self.instructions[JNE] = self.jne
 
-        self.instructions[JLTI] = self.jlti
-
         # ALU OPERATIONS
         self.alu_ops = {}
-        self.alu_ops[MUL] = "MUL"
-        self.alu_ops[ADD] = "ADD"
-        self.alu_ops[CMP] = "CMP"
-        self.alu_ops[DEC] = "DEC"
-        self.alu_ops[INC] = "INC"
-        self.alu_ops[SHL] = "SHL"
-        self.alu_ops[SHR] = "SHR"
+        self.alu_ops[MUL]  = "MUL"
+        self.alu_ops[ADD]  = "ADD"
+        self.alu_ops[CMP]  = "CMP"
+        self.alu_ops[DEC]  = "DEC"
+        self.alu_ops[INC]  = "INC"
+        self.alu_ops[SHL]  = "SHL"
+        self.alu_ops[SHR]  = "SHR"
+        self.alu_ops[AND]  = "AND"
+        self.alu_ops[OR]   = "OR"
+        self.alu_ops[XOR]  = "XOR"
+        self.alu_ops[NOT]  = "NOT"
+        self.alu_ops[MOD]  = "MOD"
+        self.alu_ops[IADD] = "IADD"
 
         # Possibly Temp
         self.cont = False
@@ -144,6 +148,29 @@ class CPU:
         elif op == "DEC":
             # Decrement value in reg_a
             self.reg[reg_a] -= 1
+        elif op == "AND":
+            # Bitwise-AND the values in registerA and registerB, then store the result in registerA.
+            self.reg[reg_a] &= self.reg[reg_b]
+        elif op == "OR":
+            # Perform a bitwise-OR between the values in registerA and registerB, storing the result in registerA.
+            self.reg[reg_a] |= self.reg[reg_b]
+        elif op == "NOT":
+            # Perform a bitwise-NOT on the value in a register.
+            self.reg[reg_a] = ~ -self.reg[reg_a]
+        elif op == "XOR":
+            # Perform a bitwise-XOR between the values in registerA and registerB, storing the result in registerA.
+            self.reg[reg_a] ^= self.reg[reg_b]
+        elif op == "MOD":
+            # Divide the value in the first register by the value in the second, storing the remainder of the result in registerA.
+            # If the value in the second register is 0, the system should print an error message and halt.
+            if self.reg[reg_b] == 0:
+                raise ZeroDivisionError("You cannot mod by zero.")
+
+            divisor = self.reg[reg_a] // self.reg[reg_b]
+            self.reg[reg_a] = self.reg[reg_a] - (self.reg[reg_b] * divisor)
+        elif op == "IADD":
+            # ADD, but immediate
+            self.reg[reg_a] += reg_b
         else:
             raise Exception("Unsupported ALU operation")
     
@@ -250,11 +277,6 @@ class CPU:
     def jlt(self, reg_a):
         if self.fl & 0b00000100:
             self.pc = self.reg[reg_a]
-            self.cont = True
-    
-    def jlti(self, mar):
-        if self.fl & 0b00000100:
-            self.pc = mar
             self.cont = True
     
     def jne(self, reg_a):
